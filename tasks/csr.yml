@@ -25,6 +25,7 @@
 - name: Wait for 5 minutes for DNS to propagate
   ansible.builtin.wait_for:
     timeout: "{{ dns_wait_timeout }}"
+  when: challenge.challenge_data|length > 0
   delegate_to: localhost
 - name: Complete challenge
   community.crypto.acme_certificate:
@@ -43,6 +44,7 @@
 - ansible.builtin.include_tasks: delete_dns_records.yml
   vars:
     acme_challenges: "{{ challenge }}"
+  when: challenge.challenge_data|length > 0
 - name: Create a zip file with certificates
   community.general.archive:
     path:
