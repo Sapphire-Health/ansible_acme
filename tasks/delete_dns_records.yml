@@ -1,0 +1,16 @@
+---
+- ansible.builtin.debug:
+    msg: "{{ item.key }} - {{ item.value['dns-01'].record[:-1 - (item.value['dns-01'].record.split('.')[-2] + '.' + item.value['dns-01'].record.split('.')[-1]) | length] }} - {{ item.value['dns-01'].record.split('.')[-2] + '.' + item.value['dns-01'].record.split('.')[-1] }} - {{ item.value['dns-01'].resource_value }}"
+  loop: "{{ acme_challenges.challenge_data|dict2items }}"
+- name: Delete DNS Record
+  ansible.builtin.uri:
+    url: "https://api.godaddy.com/v1/domains/{{ item.value['dns-01'].record.split('.')[-2] + '.' + item.value['dns-01'].record.split('.')[-1] }}/records/TXT/{{ item.value['dns-01'].record[:-1 - (item.value['dns-01'].record.split('.')[-2] + '.' + item.value['dns-01'].record.split('.')[-1]) | length] }}"
+    method: DELETE
+    status_code: [204]
+    return_content: true
+    headers:
+      Content-Type: application/json
+      Authorization: "sso-key {{ godaddy_api_key }}:{{ godaddy_api_secret }}"
+  register: response
+# - ansible.builtin.debug:
+#     msg: "{{ response }}"

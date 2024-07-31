@@ -1,0 +1,14 @@
+---
+- ansible.builtin.include_tasks: create_dns_record.yml
+  vars:
+    record: "{{ item.key }}"
+    content: "{{ item.value['dns-01'] }}"
+  loop: "{{ acme_challenges.challenge_data|dict2items }}"
+# - ansible.builtin.debug:
+#     msg: "{{ item.key }} - {{ item.value }}"
+#   loop: "{{ acme_challenges.challenge_data|dict2items }}"
+# - name: Pass variables to role
+#   ansible.builtin.include_role:
+#     name: ops-guru.godaddy
+#   vars:
+#     acme_challenges: acme_challenges

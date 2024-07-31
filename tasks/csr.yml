@@ -1,0 +1,69 @@
+- ansible.builtin.debug:
+    msg: "{{ csr }}"
+- name: Get information on the CSR
+  community.crypto.openssl_csr_info:
+    content: "{{ csr }}"
+  register: decoded_csr
+- ansible.builtin.debug:
+    msg: "{{ decoded_csr }}"
+- name: Create a challenge
+  community.crypto.acme_certificate:
+    account_key_content: "{{ acme_key }}"
+    account_key_passphrase: "{{ acme_key_passphrase }}"
+    csr_content: "{{ csr }}"
+    acme_directory: "{{ acme_directory }}"
+    acme_version: "{{ acme_version }}"
+    challenge: dns-01
+    dest: "/tmp/{{ decoded_csr.subject.commonName }}.crt"
+    fullchain_dest: "/tmp/{{ decoded_csr.subject.commonName }}_chain.crt"
+  register: challenge
+- ansible.builtin.debug:
+    msg: "{{ challenge }}"
+- ansible.builtin.include_tasks: create_dns_records.yml
+  vars:
+    acme_challenges: "{{ challenge }}"
+- name: Wait for 5 minutes for DNS to propagate
+  ansible.builtin.wait_for:
+    timeout: "{{ dns_wait_timeout }}"
+  delegate_to: localhost
+- name: Complete challenge
+  community.crypto.acme_certificate:
+    account_key_content: "{{ acme_key }}"
+    account_key_passphrase: "{{ acme_key_passphrase }}"
+    csr_content: "{{ csr }}"
+    acme_directory: "{{ acme_directory }}"
+    acme_version: "{{ acme_version }}"
+    challenge: dns-01
+    dest: "/tmp/{{ decoded_csr.subject.commonName }}.crt"
+    fullchain_dest: "/tmp/{{ decoded_csr.subject.commonName }}_chain.crt"
+    data: "{{ challenge }}"
+  register: challenge_result
+- ansible.builtin.debug:
+    msg: "{{ challenge_result }}"
+- ansible.builtin.include_tasks: delete_dns_records.yml
+  vars:
+    acme_challenges: "{{ challenge }}"
+- name: Create a zip file with certificates
+  community.general.archive:
+    path:
+    - "/tmp/{{ decoded_csr.subject.commonName }}.crt"
+    - "/tmp/{{ decoded_csr.subject.commonName }}_chain.crt"
+    dest: "/tmp/{{ decoded_csr.subject.commonName }}.zip"
+    format: zip
+- name: Sending an e-mail with certificate
+  community.general.mail:
+    host: smtp.lcmchealth.org
+    port: 25
+    from: ansible@lcmchealth.org (Ansible)
+    to: "{{ email_recipient }}"
+    subject: Ansible Generated Certificate
+    body: System {{ ansible_hostname }} has been successfully provisioned.
+    attach: "/tmp/{{ decoded_csr.subject.commonName }}.zip"
+- name: Create two hard links
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: absent
+  loop:
+    - "/tmp/{{ decoded_csr.subject.commonName }}.crt"
+    - "/tmp/{{ decoded_csr.subject.commonName }}_chain.crt"
+    - "/tmp/{{ decoded_csr.subject.commonName }}.zip"

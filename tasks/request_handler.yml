@@ -1,0 +1,5 @@
+---
+- ansible.builtin.include_tasks: nocsr.yml
+  when: csr == '' or csr is not defined or csr == None
+- ansible.builtin.include_tasks: csr.yml
+  when: csr is defined
