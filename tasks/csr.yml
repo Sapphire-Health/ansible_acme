@@ -22,7 +22,7 @@
 - ansible.builtin.include_tasks: create_dns_records.yml
   vars:
     acme_challenges: "{{ challenge }}"
-- name: Wait for 5 minutes for DNS to propagate
+- name: Wait for {{ dns_wait_timeout }} seconds for DNS to propagate
   ansible.builtin.wait_for:
     timeout: "{{ dns_wait_timeout }}"
   when: challenge.challenge_data|length > 0
