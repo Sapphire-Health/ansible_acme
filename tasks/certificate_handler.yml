@@ -1,0 +1,5 @@
+---
+- ansible.builtin.include_tasks: email_certificate.yml
+  when: email_recipient is defined and email_recipient != None and email_recipient != ''
+- ansible.builtin.include_tasks: print_certificate.yml
+  when: print_certificate

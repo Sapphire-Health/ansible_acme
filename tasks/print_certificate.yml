@@ -1,0 +1,3 @@
+---
+- ansible.builtin.debug:
+    msg: "{{ lookup('ansible.builtin.file', '/tmp/{{ decoded_csr.subject.commonName }}_chain.crt') }}"

@@ -3,6 +3,6 @@
   vars:
     dns_record: "{{ dns.value['dns-01'].record }}."
     dns_value: "{{ dns.value['dns-01'].resource_value }}"
-  loop: "{{ acme_challenges.challenge_data|dict2items }}"
+  loop: "{{ challenge.challenge_data|dict2items }}"
   loop_control:
     loop_var: dns

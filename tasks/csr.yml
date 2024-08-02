@@ -25,12 +25,12 @@
     msg: "{{ challenge }}"
   delegate_to: localhost
 - ansible.builtin.include_tasks: create_dns_records.yml
-  vars:
-    acme_challenges: "{{ challenge }}"
+  # vars:
+  #   acme_challenges: "{{ challenge }}"
 - block:
     - ansible.builtin.include_tasks: verify_all_dns_record.yml
-      vars:
-        acme_challenges: "{{ challenge }}"
+      # vars:
+      #   acme_challenges: "{{ challenge }}"
       when: verify_dns
     - name: Complete challenge
       community.crypto.acme_certificate:
@@ -56,16 +56,9 @@
         dest: "/tmp/{{ decoded_csr.subject.commonName }}.zip"
         format: zip
       delegate_to: localhost
-    - name: Sending an e-mail with certificate
-      community.general.mail:
-        host: smtp.lcmchealth.org
-        port: 25
-        from: ansible@lcmchealth.org (Ansible)
-        to: "{{ email_recipient }}"
-        subject: Ansible Generated Certificate
-        body: System {{ ansible_hostname }} has been successfully provisioned.
-        attach: "/tmp/{{ decoded_csr.subject.commonName }}.zip"
-      delegate_to: localhost
+    - ansible.builtin.include_tasks: certificate_handler.yml
+      # vars:
+      #   parsed_csr: "{{ decoded_csr }}"
     - name: Delete certificate files
       ansible.builtin.file:
         path: "{{ item }}"
@@ -77,6 +70,6 @@
       delegate_to: localhost
   always:
     - ansible.builtin.include_tasks: delete_dns_records.yml
-      vars:
-        acme_challenges: "{{ challenge }}"
+      # vars:
+      #   acme_challenges: "{{ challenge }}"
       when: challenge.challenge_data|length > 0
