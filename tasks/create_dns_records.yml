@@ -2,6 +2,7 @@
 - ansible.builtin.debug:
     msg: "{{ item.key }} - {{ item.value['dns-01'].record[:-1 - (item.value['dns-01'].record.split('.')[-2] + '.' + item.value['dns-01'].record.split('.')[-1]) | length] }} - {{ item.value['dns-01'].record.split('.')[-2] + '.' + item.value['dns-01'].record.split('.')[-1] }} - {{ item.value['dns-01'].resource_value }}"
   loop: "{{ acme_challenges.challenge_data|dict2items }}"
+  delegate_to: localhost
 - name: Create DNS Record
   ansible.builtin.uri:
     url: "https://api.godaddy.com/v1/domains/{{ item.value['dns-01'].record.split('.')[-2] + '.' + item.value['dns-01'].record.split('.')[-1] }}/records"
@@ -19,5 +20,10 @@
         ttl: 600
   loop: "{{ acme_challenges.challenge_data|dict2items }}"
   register: response
+  delegate_to: localhost
+- name: Wait for {{ dns_wait_timeout }} seconds for DNS to propagate
+  ansible.builtin.wait_for:
+    timeout: "{{ dns_wait_timeout }}"
+  when: acme_challenges.challenge_data|length > 0
 # - ansible.builtin.debug:
 #     msg: "{{ response }}"
