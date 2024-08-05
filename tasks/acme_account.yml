@@ -1,0 +1,44 @@
+#code below can be used to generate a keypair for ACME account creation
+#- name: Generate an OpenSSL private key with the default values (4096 bits, RSA)
+#  community.crypto.openssl_privatekey_pipe:
+#    curve: secp256r1
+#    passphrase: <keypair passphrase>
+#    cipher: auto
+#    type: ECC
+#  register: output
+#- name: Show generated key
+#  ansible.builtin.debug:
+#    msg: "{{ output.privatekey }}"
+#  delegate_to: localhost
+- name: Check whether an account with the given account key exists
+  community.crypto.acme_account_info:
+    account_key_content: "{{ acme_key }}"
+    account_key_passphrase: "{{ acme_key_passphrase }}"
+    acme_directory: "{{ acme_directory }}"
+    acme_version: "{{ acme_version }}"
+    #select_crypto_backend: cryptography
+  register: account_data
+  delegate_to: localhost
+- name: Make sure account exists and has given contacts. We agree to TOS.
+  community.crypto.acme_account:
+    account_key_content: "{{ acme_key }}"
+    account_key_passphrase: "{{ acme_key_passphrase }}"
+    acme_directory: "{{ acme_directory }}"
+    acme_version: "{{ acme_version }}"
+    state: present
+    terms_agreed: true
+    contact:
+    - mailto: "{{ acme_account_email }}"
+  register: new_account_data
+  when: account_data.exists is false
+  delegate_to: localhost
+- name: Show created account
+  ansible.builtin.debug:
+    msg: "{{ new_account_data }}"
+  when: account_data.exists is false
+  delegate_to: localhost
+- name: Show existing account
+  ansible.builtin.debug:
+    msg: "{{ account_data }}"
+  when: account_data.exists is true
+  delegate_to: localhost
