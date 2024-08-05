@@ -24,13 +24,9 @@
 - ansible.builtin.debug:
     msg: "{{ challenge }}"
   delegate_to: localhost
-- ansible.builtin.include_tasks: create_dns_records.yml
-  # vars:
-  #   acme_challenges: "{{ challenge }}"
+- ansible.builtin.include_tasks: "dns_providers/{{ dns_provider }}/create.yml"
 - block:
     - ansible.builtin.include_tasks: verify_all_dns_record.yml
-      # vars:
-      #   acme_challenges: "{{ challenge }}"
       when: verify_dns
     - name: Complete challenge
       community.crypto.acme_certificate:
@@ -69,7 +65,5 @@
         - "/tmp/{{ decoded_csr.subject.commonName }}.zip"
       delegate_to: localhost
   always:
-    - ansible.builtin.include_tasks: delete_dns_records.yml
-      # vars:
-      #   acme_challenges: "{{ challenge }}"
+    - ansible.builtin.include_tasks: "dns_providers/{{ dns_provider }}/delete.yml"
       when: challenge.challenge_data|length > 0
