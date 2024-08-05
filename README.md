@@ -60,7 +60,6 @@ acme_key: |
     /HvSdgqJkSlVkJG42QlwmcLVkdeUHxNHtOGj0O7SaoNL7e4KBIAi6FTWCCDBQPn0
     4o+OohdPEDfm11w7M7qZFiaLxNeyqkXHq6RyxuqRyZg=
     -----END EC PRIVATE KEY-----
-    
 acme_key_passphrase: "PASSWORD FROM OPENSSL COMMAND ABOVE"
 acme_account_email: acme.account@fqdn.com
 acme_directory: https://acme-staging-v02.api.letsencrypt.org/directory
