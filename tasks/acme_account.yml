@@ -1,15 +1,15 @@
 #code below can be used to generate a keypair for ACME account creation
-#- name: Generate an OpenSSL private key with the default values (4096 bits, RSA)
-#  community.crypto.openssl_privatekey_pipe:
-#    curve: secp256r1
-#    passphrase: <keypair passphrase>
-#    cipher: auto
-#    type: ECC
-#  register: output
-#- name: Show generated key
-#  ansible.builtin.debug:
-#    msg: "{{ output.privatekey }}"
-#  delegate_to: localhost
+# - name: Generate an OpenSSL private key with the default values (4096 bits, RSA)
+#   community.crypto.openssl_privatekey_pipe:
+#     curve: secp256r1
+#     passphrase: "{{ acme_key_passphrase }}"
+#     cipher: auto
+#     type: ECC
+#   register: output
+# - name: Show generated key
+#   ansible.builtin.debug:
+#     msg: "{{ output.privatekey }}"
+#   delegate_to: localhost
 - name: Check version of installed community.crypto collection
   ansible.builtin.debug:
     msg: "community.crypto version {{ lookup('community.general.collection_version', 'community.crypto') }}"
@@ -31,7 +31,7 @@
     state: present
     terms_agreed: true
     contact:
-    - mailto: "{{ acme_account_email }}"
+    - "mailto:{{ acme_account_email }}"
   register: new_account_data
   when: account_data.exists is false
   delegate_to: localhost
