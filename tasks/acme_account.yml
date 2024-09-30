@@ -10,6 +10,9 @@
 #  ansible.builtin.debug:
 #    msg: "{{ output.privatekey }}"
 #  delegate_to: localhost
+- name: Check version of installed community.crypto collection
+  ansible.builtin.debug:
+    msg: "community.crypto version {{ lookup('community.general.collection_version', 'community.crypto') }}"
 - name: Check whether an account with the given account key exists
   community.crypto.acme_account_info:
     account_key_content: "{{ acme_key }}"
