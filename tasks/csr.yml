@@ -17,6 +17,8 @@
     acme_directory: "{{ acme_directory }}"
     acme_version: "{{ acme_version }}"
     challenge: dns-01
+    #terms_agreed: true
+    modify_account: false
     dest: "/tmp/{{ decoded_csr.subject.commonName }}.crt"
     fullchain_dest: "/tmp/{{ decoded_csr.subject.commonName }}_chain.crt"
   register: challenge
@@ -35,6 +37,8 @@
         csr_content: "{{ csr }}"
         acme_directory: "{{ acme_directory }}"
         acme_version: "{{ acme_version }}"
+        #terms_agreed: true
+        modify_account: false
         challenge: dns-01
         dest: "/tmp/{{ decoded_csr.subject.commonName }}.crt"
         fullchain_dest: "/tmp/{{ decoded_csr.subject.commonName }}_chain.crt"

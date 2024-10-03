@@ -28,6 +28,7 @@
     account_key_passphrase: "{{ acme_key_passphrase }}"
     acme_directory: "{{ acme_directory }}"
     acme_version: "{{ acme_version }}"
+    external_account_binding: "{{ external_account_binding | default(omit) }}"
     state: present
     terms_agreed: true
     contact:
