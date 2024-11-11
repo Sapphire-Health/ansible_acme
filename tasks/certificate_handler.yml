@@ -1,5 +1,11 @@
 ---
-- ansible.builtin.include_tasks: email_certificate.yml
-  when: email_recipient is defined and email_recipient != None and email_recipient != ''
-- ansible.builtin.include_tasks: print_certificate.yml
-  when: print_certificate
+- block:
+  - ansible.builtin.include_tasks: email_pfx.yml
+    when: email_recipient is defined and email_recipient != None and email_recipient != ''
+  when: csr is not defined or csr == '' or csr == None
+- block:
+  - ansible.builtin.include_tasks: email_certificate.yml
+    when: email_recipient is defined and email_recipient != None and email_recipient != ''
+  - ansible.builtin.include_tasks: print_certificate.yml
+    when: print_certificate
+  when: csr is defined

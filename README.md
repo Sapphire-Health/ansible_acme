@@ -94,4 +94,5 @@ EOF
 ### Run the playbook
 ```
 ansible-playbook -e @vars.yml main.yml
+ansible-playbook -i hosts.yml main.yml
 ```

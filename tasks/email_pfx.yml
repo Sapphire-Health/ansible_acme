@@ -1,0 +1,11 @@
+---
+- name: Sending an e-mail with certificate
+  community.general.mail:
+    host: smtp.lcmchealth.org
+    port: 25
+    from: ansible@lcmchealth.org (Ansible)
+    to: "{{ email_recipient }}"
+    subject: Ansible Generated Certificate
+    body: "See attached certificate for {{ certcn }}. The password is {{ random_password}}"
+    attach: "/tmp/{{ certcn }}.pfx"
+  delegate_to: localhost
