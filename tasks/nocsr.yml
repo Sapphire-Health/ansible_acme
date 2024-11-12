@@ -1,100 +1,116 @@
 - name: Set value for certcn
   ansible.builtin.set_fact:
     certcn: "{{ names.split(',')[0] }}"
-- name: Generate an OpenSSL private key with a different size (2048 bits)
-  community.crypto.openssl_privatekey:
-    path: "/tmp/{{ certcn }}.key"
-    type: "{{ key_type | default('RSA') }}"
-    size: "{{ key_size | default(omit) }}"
-    curve: "{{ key_curve | default(omit) }}"
-- name: Generate an OpenSSL CSR with subjectAltName extension with dynamic list
-  community.crypto.openssl_csr:
-    path: "/tmp/{{ certcn }}.csr"
-    privatekey_path: "/tmp/{{ certcn }}.key"
-    common_name: "{{ certcn }}"
-    key_usage:
-      - digitalSignature
-    extended_key_usage:
-      - serverAuth
-    subject_alt_name: "{{ item.value | map('regex_replace', '^', 'DNS:') | list }}"
-  with_dict:
-    dns_server: "{{ names.split(',') }}"
-  register: newcsr
-- name: Show CSR
-  ansible.builtin.debug:
-    msg: "{{ newcsr }}"
-- name: Create a challenge
-  community.crypto.acme_certificate:
-    account_key_content: "{{ acme_key }}"
-    account_key_passphrase: "{{ acme_key_passphrase }}"
-    csr: "/tmp/{{ certcn }}.csr"
-    acme_directory: "{{ acme_directory }}"
-    acme_version: "{{ acme_version }}"
-    challenge: dns-01
-    #terms_agreed: true
-    modify_account: false
-    dest: "/tmp/{{ certcn }}.crt"
-    fullchain_dest: "/tmp/{{ certcn }}_chain.crt"
-  register: challenge
   delegate_to: localhost
-- ansible.builtin.debug:
-    msg: "{{ challenge }}"
+- name: Set value for certname
+  ansible.builtin.set_fact:
+    certname: "{{ certcn.split('.')[0] }}"
   delegate_to: localhost
-- ansible.builtin.include_tasks: "dns_providers/{{ dns_provider }}/create.yml"
+- name: generate a random name for a working directory
+  ansible.builtin.set_fact:
+    working_directory: "ansible_cert_{{certname}}_{{ lookup('ansible.builtin.password', '/dev/null', length=8, chars=['ascii_letters' ] ) }}"
+  delegate_to: localhost
 - block:
-    - ansible.builtin.include_tasks: verify_all_dns_record.yml
-      when: verify_dns
-    - name: Complete challenge
+    - name: create working_directory
+      ansible.builtin.file:
+        path: "/tmp/{{ working_directory }}"
+        state: directory
+      delegate_to: localhost
+    - name: Generate an OpenSSL private key with a different size (2048 bits)
+      community.crypto.openssl_privatekey:
+        path: "/tmp/{{ working_directory }}/{{ certname }}.key"
+        type: "{{ key_type | default('RSA') }}"
+        size: "{{ key_size | default(omit) }}"
+        curve: "{{ key_curve | default(omit) }}"
+      delegate_to: localhost
+    - name: Generate an OpenSSL CSR with subjectAltName extension with dynamic list
+      community.crypto.openssl_csr:
+        path: "/tmp/{{ working_directory }}/{{ certname }}.csr"
+        privatekey_path: "/tmp/{{ working_directory }}/{{ certname }}.key"
+        common_name: "{{ certcn }}"
+        key_usage:
+          - digitalSignature
+        extended_key_usage:
+          - serverAuth
+        subject_alt_name: "{{ item.value | map('regex_replace', '^', 'DNS:') | list }}"
+      with_dict:
+        dns_server: "{{ names.split(',') }}"
+      register: newcsr
+      delegate_to: localhost
+    - name: Show CSR
+      ansible.builtin.debug:
+        msg: "{{ newcsr }}"
+      delegate_to: localhost
+    - name: Create a challenge
       community.crypto.acme_certificate:
         account_key_content: "{{ acme_key }}"
         account_key_passphrase: "{{ acme_key_passphrase }}"
-        csr: "/tmp/{{ certcn }}.csr"
+        csr: "/tmp/{{ working_directory }}/{{ certname }}.csr"
         acme_directory: "{{ acme_directory }}"
         acme_version: "{{ acme_version }}"
+        challenge: dns-01
         #terms_agreed: true
         modify_account: false
-        challenge: dns-01
-        dest: "/tmp/{{ certcn }}.crt"
-        fullchain_dest: "/tmp/{{ certcn }}_chain.crt"
-        data: "{{ challenge }}"
-      register: challenge_result
+        dest: "/tmp/{{ working_directory }}/{{ certname }}.crt"
+        fullchain_dest: "/tmp/{{ working_directory }}/{{ certname }}_chain.crt"
+      register: challenge
       delegate_to: localhost
     - ansible.builtin.debug:
-        msg: "{{ challenge_result }}"
+        msg: "{{ challenge }}"
       delegate_to: localhost
-    - name: Generate a random password
-      ansible.builtin.set_fact:
-        random_password: "{{ lookup('password', '/dev/null length=16 chars=ascii_letters,digits') }}"
-    - name: Generate PKCS#12 file
-      community.crypto.openssl_pkcs12:
-        action: export
-        path: "/tmp/{{ certcn }}.pfx"
-        friendly_name: "{{ certcn }}"
-        privatekey_path: "/tmp/{{ certcn }}.key"
-        certificate_path: "/tmp/{{ certcn }}.crt"
-        #other_certificates_parse_all: true
-        passphrase: '{{ random_password }}'
-        #other_certificates:
-          #- /opt/certs/ca_bundle.pem
-            # Since we set other_certificates_parse_all to true, all
-            # certificates in the CA bundle are included and not just
-            # the first one.
-          #- /opt/certs/intermediate.pem
-            # In case this file has multiple certificates in it,
-            # all will be included as well.
-        state: present
-    - ansible.builtin.include_tasks: certificate_handler.yml
-    - name: Delete certificate files
-      ansible.builtin.file:
-        path: "{{ item }}"
-        state: absent
-      loop:
-        - "/tmp/{{ certcn }}.key"
-        - "/tmp/{{ certcn }}.csr"
-        - "/tmp/{{ certcn }}.crt"
-        - "/tmp/{{ certcn }}_chain.crt"
-        - "/tmp/{{ certcn }}.pfx"
-      delegate_to: localhost
+    - ansible.builtin.include_tasks: "dns_providers/{{ dns_provider }}/create.yml"
+    - block:
+        - ansible.builtin.include_tasks: verify_all_dns_record.yml
+          when: verify_dns
+        - name: Complete challenge
+          community.crypto.acme_certificate:
+            account_key_content: "{{ acme_key }}"
+            account_key_passphrase: "{{ acme_key_passphrase }}"
+            csr: "/tmp/{{ working_directory }}/{{ certname }}.csr"
+            acme_directory: "{{ acme_directory }}"
+            acme_version: "{{ acme_version }}"
+            #terms_agreed: true
+            modify_account: false
+            challenge: dns-01
+            dest: "/tmp/{{ working_directory }}/{{ certname }}.crt"
+            fullchain_dest: "/tmp/{{ working_directory }}/{{ certname }}_chain.crt"
+            data: "{{ challenge }}"
+          register: challenge_result
+          delegate_to: localhost
+        - ansible.builtin.debug:
+            msg: "{{ challenge_result }}"
+          delegate_to: localhost
+        - name: Generate a random password
+          ansible.builtin.set_fact:
+            random_password: "{{ lookup('ansible.builtin.password', '/dev/null', length=16, chars=['ascii_letters', 'digits' ] ) }}"
+            #random_password: "{{ lookup('ansible.builtin.password', '/dev/null', length=16, chars=['ascii_letters', 'digits', 'punctuation'] ) }}"
+          delegate_to: localhost
+        - name: Generate PKCS#12 file
+          community.crypto.openssl_pkcs12:
+            action: export
+            path: "/tmp/{{ working_directory }}/{{ certname }}.pfx"
+            friendly_name: "{{ certcn }}"
+            privatekey_path: "/tmp/{{ working_directory }}/{{ certname }}.key"
+            certificate_path: "/tmp/{{ working_directory }}/{{ certname }}.crt"
+            #other_certificates_parse_all: true
+            passphrase: '{{ random_password }}'
+            #other_certificates:
+              #- /opt/certs/ca_bundle.pem
+                # Since we set other_certificates_parse_all to true, all
+                # certificates in the CA bundle are included and not just
+                # the first one.
+              #- /opt/certs/intermediate.pem
+                # In case this file has multiple certificates in it,
+                # all will be included as well.
+            state: present
+          delegate_to: localhost
+        - ansible.builtin.include_tasks: certificate_handler.yml
+      always:
+        - ansible.builtin.include_tasks: "dns_providers/{{ dns_provider }}/delete.yml"
+          when: challenge.challenge_data|length > 0
   always:
-    - ansible.builtin.include_tasks: "dns_providers/{{ dns_provider }}/delete.yml"
-      when: challenge.challenge_data|length > 0
+    - name: remove working directory
+      ansible.builtin.file:
+        path: "/tmp/{{ working_directory }}"
+        state: absent
+      delegate_to: localhost

@@ -25,5 +25,6 @@
   ansible.builtin.wait_for:
     timeout: "{{ dns_wait_timeout }}"
   when: challenge.challenge_data|length > 0
+  delegate_to: localhost
 # - ansible.builtin.debug:
 #     msg: "{{ response }}"
