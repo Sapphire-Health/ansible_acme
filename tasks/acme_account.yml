@@ -10,39 +10,71 @@
 #   ansible.builtin.debug:
 #     msg: "{{ output.privatekey }}"
 #   delegate_to: localhost
-- name: Check version of installed community.crypto collection
-  ansible.builtin.debug:
-    msg: "community.crypto version {{ lookup('community.general.collection_version', 'community.crypto') }}"
-- name: Check whether an account with the given account key exists
-  community.crypto.acme_account_info:
-    account_key_content: "{{ acme_key }}"
-    account_key_passphrase: "{{ acme_key_passphrase }}"
-    acme_directory: "{{ acme_directory }}"
-    acme_version: "{{ acme_version }}"
-    #select_crypto_backend: cryptography
-  register: account_data
-  delegate_to: localhost
-- name: Make sure account exists and has given contacts. We agree to TOS.
-  community.crypto.acme_account:
-    account_key_content: "{{ acme_key }}"
-    account_key_passphrase: "{{ acme_key_passphrase }}"
-    acme_directory: "{{ acme_directory }}"
-    acme_version: "{{ acme_version }}"
-    external_account_binding: "{{ external_account_binding | default(omit) }}"
-    state: present
-    terms_agreed: true
-    contact:
-    - "mailto:{{ acme_account_email }}"
-  register: new_account_data
-  when: account_data.exists is false
-  delegate_to: localhost
-- name: Show created account
-  ansible.builtin.debug:
-    msg: "{{ new_account_data }}"
-  when: account_data.exists is false
-  delegate_to: localhost
-- name: Show existing account
-  ansible.builtin.debug:
-    msg: "{{ account_data }}"
-  when: account_data.exists is true
-  delegate_to: localhost
+- name: Verify ACME Key
+  block:
+      - name: Check version of installed community.crypto collection
+        ansible.builtin.debug:
+          msg: "community.crypto version {{ lookup('community.general.collection_version', 'community.crypto') }}"
+      - name: Check whether an account with the given account key exists
+        community.crypto.acme_account_info:
+          account_key_content: "{{ acme_key }}"
+          account_key_passphrase: "{{ acme_key_passphrase }}"
+          acme_directory: "{{ acme_directory }}"
+          acme_version: "{{ acme_version }}"
+          #select_crypto_backend: cryptography
+        register: account_data
+        delegate_to: localhost
+      - name: Make sure account exists and has given contacts. We agree to TOS.
+        community.crypto.acme_account:
+          account_key_content: "{{ acme_key }}"
+          account_key_passphrase: "{{ acme_key_passphrase }}"
+          acme_directory: "{{ acme_directory }}"
+          acme_version: "{{ acme_version }}"
+          external_account_binding: "{{ external_account_binding | default(omit) }}"
+          state: present
+          terms_agreed: true
+          contact:
+          - "mailto:{{ acme_account_email }}"
+        register: new_account_data
+        when: account_data.exists is false
+        delegate_to: localhost
+      - name: Show created account
+        ansible.builtin.debug:
+          msg: "{{ new_account_data }}"
+        when: account_data.exists is false
+        delegate_to: localhost
+      - name: Show existing account
+        ansible.builtin.debug:
+          msg: "{{ account_data }}"
+        when: account_data.exists is true
+        delegate_to: localhost
+  when: acme_key is defined and acme_key_passphrase is defined
+- name: Generate ACME Key and Stop
+  block: 
+    - name: Generate a random acme_key_passphrase
+      block:
+        - ansible.builtin.set_fact:
+            akp: "{{ lookup('ansible.builtin.password', '/dev/null', length=16, chars=['ascii_letters', 'digits', 'punctuation' ] ) }}"
+          delegate_to: localhost
+        - ansible.builtin.debug:
+            msg: "Generated acme_key_passphrase: {{ akp }}"
+        - ansible.builtin.set_fact:
+            acme_key_passphrase: "{{ akp }}"
+          delegate_to: localhost
+      when: acme_key_passphrase is not defined
+    - name: Generate an OpenSSL private key with the default values (4096 bits, RSA)
+      community.crypto.openssl_privatekey_pipe:
+        curve: secp256r1
+        passphrase: "{{ acme_key_passphrase }}"
+        cipher: auto
+        type: ECC
+      register: output
+      delegate_to: localhost
+    - ansible.builtin.debug:
+        msg: "Generated acme_key: {{ output.privatekey }}"
+      delegate_to: localhost
+    - name: Show generated key
+      ansible.builtin.fail:
+        msg: "The acme_key and acme_key_passphrase are not defined. Please generate them and add them to the playbook or use the ones generated in the output above."
+      delegate_to: localhost
+  when: acme_key is not defined
