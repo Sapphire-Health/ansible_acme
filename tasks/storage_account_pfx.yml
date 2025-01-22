@@ -1,0 +1,21 @@
+---
+- name: Generate a random name for the certificate
+  ansible.builtin.set_fact:
+    randomize_cert_name: "{{ lookup('ansible.builtin.password', '/dev/null', length=32, chars=['ascii_letters' ] ) }}"
+  delegate_to: localhost
+- name: Upload certificate to the storage account
+  azure.azcollection.azure_rm_storageblob:
+    auth_source: env
+    resource_group: "{{ resource_group }}"
+    storage_account_name: "{{ storage_account_name }}"
+    container: "{{ container }}"
+    blob: "{{ randomize_cert_name }}.pfx"
+    src: "/tmp/{{ working_directory }}/{{ certname }}.pfx"
+    public_access: container
+    content_type: 'application/x-pkcs12'
+  delegate_to: localhost
+  register: storage_account_upload
+- name: Certificate Data
+  ansible.builtin.debug:
+    msg: "Download the certificate at https://lcmcsharedgeneraleast01.blob.core.windows.net/certs/{{ randomize_cert_name }}.pfx and use the password \"{{ random_password }}\" to decrypt it."
+  delegate_to: localhost

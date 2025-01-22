@@ -9,3 +9,9 @@
   - ansible.builtin.include_tasks: print_certificate.yml
     when: print_certificate
   when: csr is defined
+- block:
+  - ansible.builtin.include_tasks: storage_account_pfx.yml
+    when: csr is not defined or csr == '' or csr == None
+  - ansible.builtin.include_tasks: storage_account_zip.yml
+    when: csr is defined
+  when: storage_account_name is defined and storage_account_name != None and storage_account_name != ''
