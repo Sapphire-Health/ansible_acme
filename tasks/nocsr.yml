@@ -52,7 +52,7 @@
         #terms_agreed: true
         modify_account: false
         dest: "/tmp/{{ working_directory }}/{{ certname }}.crt"
-        fullchain_dest: "/tmp/{{ working_directory }}/{{ certname }}_chain.crt"
+        chain_dest: "/tmp/{{ working_directory }}/{{ certname }}_chain.pem"
       register: challenge
       delegate_to: localhost
     - ansible.builtin.debug:
@@ -74,7 +74,7 @@
             modify_account: false
             challenge: dns-01
             dest: "/tmp/{{ working_directory }}/{{ certname }}.crt"
-            fullchain_dest: "/tmp/{{ working_directory }}/{{ certname }}_chain.crt"
+            chain_dest: "/tmp/{{ working_directory }}/{{ certname }}_chain.pem"
             data: "{{ challenge }}"
           register: challenge_result
           delegate_to: localhost
@@ -93,7 +93,8 @@
             friendly_name: "{{ certcn }}"
             privatekey_path: "/tmp/{{ working_directory }}/{{ certname }}.key"
             certificate_path: "/tmp/{{ working_directory }}/{{ certname }}.crt"
-            #other_certificates_parse_all: true
+            other_certificates: "/tmp/{{ working_directory }}/{{ certname }}_chain.pem"
+            other_certificates_parse_all: true
             passphrase: '{{ random_password }}'
             #other_certificates:
               #- /opt/certs/ca_bundle.pem

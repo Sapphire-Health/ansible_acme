@@ -20,7 +20,7 @@
     #terms_agreed: true
     modify_account: false
     dest: "/tmp/{{ decoded_csr.subject.commonName }}.crt"
-    fullchain_dest: "/tmp/{{ decoded_csr.subject.commonName }}_chain.crt"
+    chain_dest: "/tmp/{{ decoded_csr.subject.commonName }}_chain.pem"
   register: challenge
   delegate_to: localhost
 - ansible.builtin.debug:
@@ -42,7 +42,7 @@
         modify_account: false
         challenge: dns-01
         dest: "/tmp/{{ decoded_csr.subject.commonName }}.crt"
-        fullchain_dest: "/tmp/{{ decoded_csr.subject.commonName }}_chain.crt"
+        chain_dest: "/tmp/{{ decoded_csr.subject.commonName }}_chain.pem"
         data: "{{ challenge }}"
       register: challenge_result
       delegate_to: localhost
@@ -53,7 +53,7 @@
       community.general.archive:
         path:
         - "/tmp/{{ decoded_csr.subject.commonName }}.crt"
-        - "/tmp/{{ decoded_csr.subject.commonName }}_chain.crt"
+        - "/tmp/{{ decoded_csr.subject.commonName }}_chain.pem"
         dest: "/tmp/{{ decoded_csr.subject.commonName }}.zip"
         format: zip
       delegate_to: localhost
@@ -66,7 +66,7 @@
         state: absent
       loop:
         - "/tmp/{{ decoded_csr.subject.commonName }}.crt"
-        - "/tmp/{{ decoded_csr.subject.commonName }}_chain.crt"
+        - "/tmp/{{ decoded_csr.subject.commonName }}_chain.pem"
         - "/tmp/{{ decoded_csr.subject.commonName }}.zip"
       delegate_to: localhost
   always:
