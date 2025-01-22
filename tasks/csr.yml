@@ -27,6 +27,7 @@
     msg: "{{ challenge }}"
   delegate_to: localhost
 - ansible.builtin.include_tasks: "dns_providers/{{ dns_provider }}/create.yml"
+  when: challenge.changed != false and challenge.challenge_data|length > 0
 - block:
     - ansible.builtin.include_tasks: verify_all_dns_record.yml
       when: verify_dns
@@ -70,4 +71,4 @@
       delegate_to: localhost
   always:
     - ansible.builtin.include_tasks: "dns_providers/{{ dns_provider }}/delete.yml"
-      when: challenge.challenge_data|length > 0
+      when: challenge.changed != false and challenge.challenge_data|length > 0
