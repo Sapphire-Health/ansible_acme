@@ -14,6 +14,6 @@
   loop: "{{ challenge.challenge_data|dict2items }}"
   register: response
   delegate_to: localhost
-- ansible.builtin.debug:
-    msg: "{{ response }}"
-  delegate_to: localhost
+# - ansible.builtin.debug:
+#     msg: "{{ response }}"
+#   delegate_to: localhost
