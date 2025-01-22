@@ -1,0 +1,20 @@
+---
+- ansible.builtin.debug:
+    msg: "{{ item.key }} - {{ item.value['dns-01'].record[:-1 - (item.value['dns-01'].record.split('.')[-2] + '.' + item.value['dns-01'].record.split('.')[-1]) | length] }} - {{ item.value['dns-01'].record.split('.')[-2] + '.' + item.value['dns-01'].record.split('.')[-1] }} - {{ item.value['dns-01'].resource_value }}"
+  loop: "{{ challenge.challenge_data|dict2items }}"
+  delegate_to: localhost
+- name: Create DNS Record
+  amazon.aws.route53:
+    state: present
+    zone: "{{ item.value['dns-01'].record.split('.')[-2] }}.{{ item.value['dns-01'].record.split('.')[-1] }}"
+    record: "{{ item.value['dns-01'].record }}"
+    type: TXT
+    ttl: 60
+    value: "\"{{ item.value['dns-01'].resource_value }}\""
+    wait: true
+  loop: "{{ challenge.challenge_data|dict2items }}"
+  register: response
+  delegate_to: localhost
+- ansible.builtin.debug:
+    msg: "{{ response }}"
+  delegate_to: localhost
