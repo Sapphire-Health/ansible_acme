@@ -17,6 +17,7 @@
     acme_directory: "{{ acme_directory }}"
     acme_version: "{{ acme_version }}"
     challenge: dns-01
+    profile: "{{ profile | default(omit) }}"
     #terms_agreed: true
     modify_account: false
     dest: "/tmp/{{ decoded_csr.subject.commonName }}.crt"
@@ -41,6 +42,7 @@
         #terms_agreed: true
         modify_account: false
         challenge: dns-01
+        profile: "{{ profile | default(omit) }}"
         dest: "/tmp/{{ decoded_csr.subject.commonName }}.crt"
         chain_dest: "/tmp/{{ decoded_csr.subject.commonName }}_chain.pem"
         data: "{{ challenge }}"

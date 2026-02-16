@@ -49,6 +49,7 @@
         acme_directory: "{{ acme_directory }}"
         acme_version: "{{ acme_version }}"
         challenge: dns-01
+        profile: "{{ profile | default(omit) }}"
         #terms_agreed: true
         modify_account: false
         dest: "/tmp/{{ working_directory }}/{{ certname }}.crt"
@@ -73,6 +74,7 @@
             #terms_agreed: true
             modify_account: false
             challenge: dns-01
+            profile: "{{ profile | default(omit) }}"
             dest: "/tmp/{{ working_directory }}/{{ certname }}.crt"
             chain_dest: "/tmp/{{ working_directory }}/{{ certname }}_chain.pem"
             data: "{{ challenge }}"
